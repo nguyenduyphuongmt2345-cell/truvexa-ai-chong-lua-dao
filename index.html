@@ -167,6 +167,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   BrainCircuit,
+  Copyright,
   Camera,
   Bell,
   Lock,
@@ -415,6 +416,32 @@ function simulateMediaScan(file) {
   return Math.max(6, Math.min(97, 18 + (seed % 78)));
 }
 
+// Kho tác phẩm mẫu dùng để mô phỏng "trùng khớp bản quyền" — bản demo,
+// không phải cơ sở dữ liệu bản quyền thật (giống Content ID của YouTube).
+// Bản triển khai thật cần nối vào dịch vụ nhận diện nội dung (ACRCloud,
+// Audible Magic, YouTube Content ID API...) qua backend riêng.
+const DEMO_COPYRIGHT_WORKS = [
+  { title: "Bản nhạc nền thương mại #A17", owner: "Hãng thu âm Sao Việt", type: "Âm nhạc" },
+  { title: "Đoạn phim quảng cáo lưu trữ #C204", owner: "Công ty Truyền Thông Ánh Dương", type: "Video" },
+  { title: "Bộ ảnh stock #IMG-5521", owner: "ShutterVN Stock Photo", type: "Hình ảnh" },
+  { title: "Bản thu âm giọng đọc #V88", owner: "Studio Lồng Tiếng Hoàng Gia", type: "Giọng nói" },
+  { title: "Nhạc nền phim ngắn #B305", owner: "Nhà sản xuất Mộc Lan Films", type: "Âm nhạc" },
+];
+
+function simulateCopyrightCheck(file, mediaKind) {
+  let seed = 7;
+  const name = (file && file.name) || "file";
+  for (let i = 0; i < name.length; i++) seed += name.charCodeAt(i) * (i + 1);
+  seed += file ? Math.round(file.size / 1024) % 97 : 0;
+
+  const matchScore = seed % 100; // 0-99, càng cao càng dễ "trùng khớp"
+  const matched = matchScore >= 45;
+  const work = matched ? DEMO_COPYRIGHT_WORKS[seed % DEMO_COPYRIGHT_WORKS.length] : null;
+  const confidence = matched ? Math.max(41, Math.min(98, matchScore)) : Math.max(2, 100 - matchScore) % 30;
+
+  return { matched, confidence, work, mediaKind };
+}
+
 // ---------- shared chrome ----------
 function StatusBar() {
   return (
@@ -556,43 +583,4 @@ function BottomNav({ active, onNav, t, onQuickScan }) {
                 background: it.isCenter ? "linear-gradient(135deg, #2E5BFF, #4C6FFF)" : isActive ? activeBg : "#1A2A5C",
                 marginTop: it.isCenter ? -14 : 0,
                 boxShadow: it.isCenter ? "0 4px 14px rgba(46,91,255,0.5)" : "none",
-                border: it.isCenter ? "3px solid " + C.navyDeep : "none",
-              }}
-            >
-              <Icon size={it.isCenter ? 18 : 16} color={it.isCenter ? "#fff" : iconColor} fill={isActive && it.id !== "alerts" ? "none" : "none"} />
-            </span>
-            <span style={{ fontFamily: "'Be Vietnam Pro', sans-serif", fontSize: 10.5, fontWeight: 700 }}>{it.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function Badge({ text, tone }) {
-  const tones = {
-    danger: [C.dangerBg, C.danger],
-    warn: [C.warnBg, "#B9760A"],
-    safe: [C.safeBg, C.safe],
-  };
-  const [bg, fg] = tones[tone];
-  return (
-    <span style={{ background: bg, color: fg, fontSize: 10.5, fontWeight: 800, padding: "3px 10px", borderRadius: 999, fontFamily: "'Be Vietnam Pro', sans-serif" }}>
-      {text}
-    </span>
-  );
-}
-
-// ---------- Đánh giá của khách hàng (feedback học hỏi & cải thiện) ----------
-// Ghi chú: lưu vào localStorage của trình duyệt để giữ lại giữa các lần
-// mở app. Bản thật nên gửi thêm lên backend (vd. Firestore / bảng
-// feedback_logs) để tổng hợp trên nhiều thiết bị và dùng để tinh chỉnh
-// mô hình / ngưỡng phát hiện lừa đảo theo thời gian.
-const FEEDBACK_STORAGE_KEY = "truvexa_feedback_log_v1";
-
-// Icon dùng cho từng loại kiểm tra trong Lịch Sử — tra theo "type" (chuỗi)
-// thay vì lưu thẳng component icon, để có thể lưu xuống localStorage (JSON).
-const HISTORY_ICON_MAP = {
-  video: Video,
-  voice: Mic,
- 
+                border: it.isCenter ? "3px soli
